@@ -1,4 +1,4 @@
-import { ExternalLink, MapPin, Calendar, FileText, UserMinus, UserPlus } from 'lucide-react';
+import { ExternalLink, MapPin, Calendar, FileText, UserMinus, UserPlus, Building2, Mail } from 'lucide-react';
 import { AnuncioFarmacia } from '../types/farmacia';
 
 interface Props {
@@ -9,45 +9,50 @@ interface Props {
 type BadgeVariant = 'apertura' | 'titular' | 'cierre' | 'transmision' | 'default';
 
 const BADGE_STYLES: Record<BadgeVariant, { bg: string; text: string; dot: string; label: string }> = {
-  apertura:    { bg: 'bg-blue-50',   text: 'text-blue-700',   dot: 'bg-blue-500',   label: 'Apertura' },
+  apertura:    { bg: 'bg-blue-50',    text: 'text-blue-700',    dot: 'bg-blue-500',    label: 'Apertura' },
   titular:     { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Cambio titular' },
-  cierre:      { bg: 'bg-red-50',    text: 'text-red-700',    dot: 'bg-red-500',    label: 'Cierre' },
-  transmision: { bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500', label: 'Transmisión' },
-  default:     { bg: 'bg-slate-100', text: 'text-slate-600',  dot: 'bg-slate-400',  label: 'Resolución' },
+  cierre:      { bg: 'bg-red-50',     text: 'text-red-700',     dot: 'bg-red-500',     label: 'Cierre' },
+  transmision: { bg: 'bg-violet-50',  text: 'text-violet-700',  dot: 'bg-violet-500',  label: 'Transmisión' },
+  default:     { bg: 'bg-slate-100',  text: 'text-slate-600',   dot: 'bg-slate-400',   label: 'Resolución' },
 };
 
 function clasificar(titulo: string): BadgeVariant {
   const t = titulo.toLowerCase();
-  if (/cierre/.test(t)) return 'cierre';
-  if (/apertura/.test(t)) return 'apertura';
-  if (/transmis/.test(t)) return 'transmision';
+  if (/cierre/.test(t))              return 'cierre';
+  if (/apertura/.test(t))            return 'apertura';
+  if (/transmis/.test(t))            return 'transmision';
   if (/titular|titularidad/.test(t)) return 'titular';
   return 'default';
 }
 
 export default function ResultCard({ anuncio, index }: Props) {
-  const { titulo, fecha, municipio, enlace_pdf, texto_resumen,
-          titular_saliente, titular_entrante } = anuncio;
+  const {
+    titulo, fecha, municipio, enlace_pdf, texto_resumen,
+    titular_saliente, titular_entrante,
+    nombre_farmacia, direccion_farmacia, email,
+  } = anuncio;
+
   const variant = clasificar(titulo);
-  const badge = BADGE_STYLES[variant];
+  const badge   = BADGE_STYLES[variant];
+  const tienePersonas = titular_saliente || titular_entrante;
+  const tieneDetalle  = nombre_farmacia || direccion_farmacia || email;
 
   return (
     <article
       className="bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden animate-fade-up"
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      {/* Franja de color superior según tipo */}
-      <div
-        className={`h-1 w-full ${
-          variant === 'apertura' ? 'bg-blue-500' :
-          variant === 'titular' ? 'bg-emerald-500' :
-          variant === 'cierre' ? 'bg-red-500' :
-          variant === 'transmision' ? 'bg-violet-500' :
-          'bg-slate-200'
-        }`}
-      />
+      {/* Franja de color superior */}
+      <div className={`h-1 w-full ${
+        variant === 'apertura'    ? 'bg-blue-500' :
+        variant === 'titular'     ? 'bg-emerald-500' :
+        variant === 'cierre'      ? 'bg-red-500' :
+        variant === 'transmision' ? 'bg-violet-500' :
+        'bg-slate-200'
+      }`} />
 
       <div className="p-5 flex flex-col gap-3 flex-1">
+
         {/* Badge + fuente */}
         <div className="flex items-center justify-between gap-2">
           <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text}`}>
@@ -83,8 +88,8 @@ export default function ResultCard({ anuncio, index }: Props) {
           </p>
         )}
 
-        {/* Personas */}
-        {(titular_saliente || titular_entrante) && (
+        {/* Titulares */}
+        {tienePersonas && (
           <div className="flex flex-col gap-1.5 py-2.5 px-3 bg-slate-50 rounded-lg text-[11px]">
             {titular_saliente && (
               <span className="flex items-center gap-2 text-rose-600">
@@ -97,6 +102,33 @@ export default function ResultCard({ anuncio, index }: Props) {
                 <UserPlus size={12} className="shrink-0" />
                 <span className="font-medium truncate">{titular_entrante}</span>
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Datos de la farmacia */}
+        {tieneDetalle && (
+          <div className="flex flex-col gap-1.5 py-2.5 px-3 bg-blue-50 rounded-lg text-[11px]">
+            {nombre_farmacia && (
+              <span className="flex items-center gap-2 text-blue-700">
+                <Building2 size={12} className="shrink-0" />
+                <span className="font-medium truncate">{nombre_farmacia}</span>
+              </span>
+            )}
+            {direccion_farmacia && (
+              <span className="flex items-center gap-2 text-blue-600">
+                <MapPin size={12} className="shrink-0" />
+                <span className="truncate">{direccion_farmacia}</span>
+              </span>
+            )}
+            {email && (
+              <a
+                href={`mailto:${email}`}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <Mail size={12} className="shrink-0" />
+                <span className="truncate">{email}</span>
+              </a>
             )}
           </div>
         )}

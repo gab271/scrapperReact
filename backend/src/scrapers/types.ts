@@ -7,10 +7,13 @@ export interface AnuncioFarmacia {
   texto_resumen: string;
   comunidad: string;
   fuente: string; // "BOCM", "BOJA", "DOGC", etc.
-  // Personas extraídas del texto del anuncio (null si no detectado)
+  // Personas y datos extraídos del texto completo del anuncio (null si no detectado)
   titular_saliente?: string | null;
   titular_entrante?: string | null;
   email?: string | null;
+  nombre_farmacia?: string | null;
+  direccion_farmacia?: string | null;
+  texto_completo?: string;
 }
 
 export interface ScraperResult {

@@ -14,6 +14,8 @@ const NOMBRE = `(${T}\\s+[^,.]{5,55})`;
 
 // Patrones para el titular que SALE (vende / transmite / cesa)
 const PATRONES_SALIENTE: RegExp[] = [
+  // "farmacéutica doña Ana García ha solicitado transmisión..."
+  new RegExp(`farmac[eé]utic[ao]\\s+${NOMBRE}\\s+ha\\s+solicitado`, 'i'),
   // "de la que es titular D. Juan Pérez García"
   new RegExp(`de (?:la|el) que es titular\\s+${NOMBRE}`, 'i'),
   // "titular D. Juan Pérez García"  (más genérico, va al final)

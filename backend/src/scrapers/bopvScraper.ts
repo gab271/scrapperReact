@@ -79,6 +79,9 @@ async function getIso(url: string): Promise<string> {
   return iconv.decode(Buffer.from(res.data as ArrayBuffer), 'iso-8859-1');
 }
 
+const DELAY_MS = 300;
+function delay(ms: number) { return new Promise<void>(r => setTimeout(r, ms)); }
+
 // ─── Clase principal ────────────────────────────────────────────────────────
 
 export class BopvScraper implements IScraper {
@@ -194,6 +197,29 @@ export class BopvScraper implements IScraper {
     return anuncios;
   }
 
+  /**
+   * Descarga la página de detalle (.shtml) y extrae el texto de la resolución.
+   * La URL del enlace tiene formato: baseUrl + "2601453a.shtml"
+   * El PDF real es el mismo nombre con extensión .pdf
+   */
+  private async fetchTextoDetalle(shtmlUrl: string): Promise<string | null> {
+    if (!shtmlUrl || !shtmlUrl.endsWith('.shtml')) return null;
+    try {
+      const html = await getIso(shtmlUrl);
+      const $    = cheerio.load(html);
+      // El contenido de la resolución en páginas BOPV está en párrafos con clase BOPV*
+      const partes: string[] = [];
+      $('p[class^="BOPV"], p.BOPVTitulo, p.BOPVCuerpo, p.BOPVSubseccion').each((_, el) => {
+        const t = $(el).text().replace(/\s+/g, ' ').trim();
+        if (t) partes.push(t);
+      });
+      const texto = partes.join(' ');
+      return (texto.length > 50 ? texto : null)?.slice(0, 6000) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   // ── Scraper principal ─────────────────────────────────────────────────────
 
   async scrape(): Promise<ScraperResult> {
@@ -240,7 +266,27 @@ export class BopvScraper implements IScraper {
           const items = await this.parsearSumario(year, month, num);
           for (const item of items) {
             const key = item.enlace_pdf || item.titulo.substring(0, 80);
-            if (!vistos.has(key)) { vistos.add(key); anuncios.push(item); }
+            if (vistos.has(key)) continue;
+            vistos.add(key);
+
+            // ── Enriquecer con texto de la página de detalle ────
+            await delay(DELAY_MS);
+            const textoDetalle = await this.fetchTextoDetalle(item.enlace_pdf);
+            if (textoDetalle) {
+              const extraido = extraerTitulares(textoDetalle);
+              item.texto_completo   = textoDetalle;
+              item.texto_resumen    = textoDetalle.slice(0, 500);
+              item.titular_saliente = extraido.titular_saliente  ?? item.titular_saliente;
+              item.titular_entrante = extraido.titular_entrante  ?? item.titular_entrante;
+              item.email            = extraido.email             ?? item.email;
+              item.direccion_farmacia = extraido.direccion_farmacia ?? item.direccion_farmacia;
+            }
+            // Corregir enlace_pdf: apuntar al .pdf real en lugar del .shtml
+            if (item.enlace_pdf.endsWith('.shtml')) {
+              item.enlace_pdf = item.enlace_pdf.replace('.shtml', '.pdf');
+            }
+
+            anuncios.push(item);
           }
           if (items.length > 0) {
             console.log(`[BOPV]   Boletín ${num}: ${items.length} coincidencias`);

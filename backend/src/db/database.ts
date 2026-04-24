@@ -39,8 +39,16 @@ function initSchema(db: Database.Database): void {
   `);
 
   // Migración: añadir columnas si la tabla ya existía sin ellas
-  migrateAddColumn(db, 'anuncios', 'titular_saliente', 'TEXT');
-  migrateAddColumn(db, 'anuncios', 'titular_entrante', 'TEXT');
+  migrateAddColumn(db, 'anuncios', 'titular_saliente',  'TEXT');
+  migrateAddColumn(db, 'anuncios', 'titular_entrante',  'TEXT');
+  migrateAddColumn(db, 'anuncios', 'email',             'TEXT');
+  migrateAddColumn(db, 'anuncios', 'nombre_farmacia',   'TEXT');
+  migrateAddColumn(db, 'anuncios', 'direccion_farmacia','TEXT');
+  migrateAddColumn(db, 'anuncios', 'texto_completo',    'TEXT');
+  migrateAddColumn(db, 'anuncios', 'fecha_iso',         'TEXT');
+
+  // Índice para filtrado por fecha ISO
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_anuncios_fecha_iso ON anuncios(fecha_iso DESC);`);
 }
 
 function migrateAddColumn(

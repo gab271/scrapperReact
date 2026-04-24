@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, AlertTriangle, Clock, Layers, TrendingUp, CloudDownload } from 'lucide-react';
-import { getFarmaciasPorComunidad, syncFarmacias } from './api/farmacias';
+import { RefreshCw, AlertTriangle, Clock, Layers, TrendingUp, CloudDownload, FileDown } from 'lucide-react';
+import { getFarmaciasPorComunidad, syncFarmacias, exportarCSV } from './api/farmacias';
 import { AnuncioFarmacia, EstadoPeticion } from './types/farmacia';
 import Sidebar, { ComunidadKey, VistaKey, COMUNIDADES } from './components/Sidebar';
 import ResultCard from './components/ResultCard';
@@ -24,13 +24,11 @@ export default function App() {
   const [meta, setMeta]             = useState<Meta | null>(null);
   const [syncing, setSyncing]       = useState(false);
   const [syncInfo, setSyncInfo]     = useState<string | null>(null);
+  const [meses, setMeses]           = useState<number>(12);
 
-  // Ref para cancelar fetches anteriores si el usuario cambia de comunidad
-  // antes de que el anterior termine (evita race condition).
   const abortRef = useRef<AbortController | null>(null);
 
-  const cargar = useCallback(async (com: ComunidadKey) => {
-    // Cancelar el fetch anterior si sigue en curso
+  const cargar = useCallback(async (com: ComunidadKey, m?: number) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -41,7 +39,7 @@ export default function App() {
     setMeta(null);
 
     try {
-      const res = await getFarmaciasPorComunidad(com, controller.signal);
+      const res = await getFarmaciasPorComunidad(com, controller.signal, m ?? meses);
 
       // Si esta petición fue cancelada, ignorar el resultado
       if (controller.signal.aborted) return;
@@ -57,8 +55,7 @@ export default function App() {
     }
   }, []);
 
-  // Cargar al montar y al cambiar de comunidad
-  useEffect(() => { cargar(comunidad); }, [comunidad, cargar]);
+  useEffect(() => { cargar(comunidad, meses); }, [comunidad, meses, cargar]);
 
   const handleComunidadChange = (key: ComunidadKey) => {
     if (key !== comunidad) setComunidad(key);
@@ -143,6 +140,33 @@ export default function App() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {syncInfo}
               </span>
+            )}
+            {/* Selector de rango temporal */}
+            <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+              {([3, 6, 12, 0] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMeses(m === 0 ? 999 : m)}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-md transition-colors ${
+                    (m === 0 ? meses >= 999 : meses === m)
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {m === 0 ? 'Todo' : m === 12 ? '1 año' : `${m}m`}
+                </button>
+              ))}
+            </div>
+
+            {anuncios.length > 0 && (
+              <button
+                onClick={() => exportarCSV(comunidad)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 text-white text-[13px] font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                title="Exportar datos actuales a CSV"
+              >
+                <FileDown size={13} />
+                Exportar CSV
+              </button>
             )}
             <button
               onClick={handleSync}

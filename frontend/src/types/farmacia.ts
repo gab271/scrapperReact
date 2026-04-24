@@ -7,8 +7,12 @@ export interface AnuncioFarmacia {
   texto_resumen: string;
   comunidad: string;
   fuente: string;
-  titular_saliente?: string | null;
-  titular_entrante?: string | null;
+  titular_saliente?:   string | null;
+  titular_entrante?:   string | null;
+  email?:              string | null;
+  nombre_farmacia?:    string | null;
+  direccion_farmacia?: string | null;
+  texto_completo?:     string;
 }
 
 export interface ApiResponse {
