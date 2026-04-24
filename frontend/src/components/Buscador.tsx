@@ -4,6 +4,7 @@ import { getFarmaciasPorComunidad } from '../api/farmacias';
 import { AnuncioFarmacia } from '../types/farmacia';
 import ResultCard from './ResultCard';
 import { SkeletonGrid } from './SkeletonCard';
+import { COMUNIDADES } from './Sidebar';
 
 export default function Buscador() {
   const [anuncios, setAnuncios] = useState<AnuncioFarmacia[]>([]);
@@ -16,18 +17,10 @@ export default function Buscador() {
       setLoading(true);
       setError(null);
       try {
-        const [resMadrid, resCanarias, resAndalucia, resCataluna] = await Promise.all([
-          getFarmaciasPorComunidad('madrid'),
-          getFarmaciasPorComunidad('canarias'),
-          getFarmaciasPorComunidad('andalucia'),
-          getFarmaciasPorComunidad('cataluna'),
-        ]);
-        setAnuncios([
-          ...resMadrid.anuncios,
-          ...resCanarias.anuncios,
-          ...resAndalucia.anuncios,
-          ...resCataluna.anuncios,
-        ]);
+        const resultados = await Promise.all(
+          COMUNIDADES.filter(c => c.disponible).map(c => getFarmaciasPorComunidad(c.key)),
+        );
+        setAnuncios(resultados.flatMap(r => r.anuncios));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión con el backend');
       } finally {

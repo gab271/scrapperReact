@@ -6,6 +6,7 @@ import { getFarmaciasPorComunidad } from '../api/farmacias';
 import { AnuncioFarmacia } from '../types/farmacia';
 import { geocodificar } from '../utils/geocodificar';
 import { MapPin, AlertTriangle } from 'lucide-react';
+import { COMUNIDADES } from './Sidebar';
 
 // DivIcon personalizado — evita el problema de rutas de imágenes con Vite
 function crearIcono(count: number): L.DivIcon {
@@ -43,18 +44,10 @@ export default function Mapa() {
       setLoading(true);
       setError(null);
       try {
-        const [resMadrid, resCanarias, resAndalucia, resCataluna] = await Promise.all([
-          getFarmaciasPorComunidad('madrid'),
-          getFarmaciasPorComunidad('canarias'),
-          getFarmaciasPorComunidad('andalucia'),
-          getFarmaciasPorComunidad('cataluna'),
-        ]);
-        setAnuncios([
-          ...resMadrid.anuncios,
-          ...resCanarias.anuncios,
-          ...resAndalucia.anuncios,
-          ...resCataluna.anuncios,
-        ]);
+        const resultados = await Promise.all(
+          COMUNIDADES.filter(c => c.disponible).map(c => getFarmaciasPorComunidad(c.key)),
+        );
+        setAnuncios(resultados.flatMap(r => r.anuncios));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error de conexión con el backend');
       } finally {

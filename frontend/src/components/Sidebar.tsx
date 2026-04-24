@@ -2,7 +2,8 @@ import { LayoutDashboard, Search, Bell, Map, Settings, FileText, Activity } from
 
 export type ComunidadKey =
   | 'madrid' | 'canarias' | 'andalucia' | 'cataluna'
-  | 'valencia' | 'paisvasco' | 'galicia' | 'aragon';
+  | 'valencia' | 'paisvasco' | 'galicia' | 'aragon'
+  | 'castillayleon' | 'murcia' | 'asturias' | 'navarra';
 export type VistaKey = 'dashboard' | 'buscador' | 'mapa';
 
 export interface ComunidadEntry {
@@ -14,14 +15,18 @@ export interface ComunidadEntry {
 }
 
 export const COMUNIDADES: ComunidadEntry[] = [
-  { key: 'madrid',    code: 'BOCM', name: 'Madrid',      color: '#f43f5e', disponible: true  },
-  { key: 'canarias',  code: 'BOC',  name: 'Canarias',    color: '#f59e0b', disponible: true  },
-  { key: 'andalucia', code: 'BOJA', name: 'Andalucía',   color: '#10b981', disponible: true  },
-  { key: 'cataluna',  code: 'DOGC', name: 'Cataluña',    color: '#8b5cf6', disponible: true  },
-  { key: 'valencia',  code: 'DOCV', name: 'Valencia',    color: '#3b82f6', disponible: true  },
-  { key: 'paisvasco', code: 'BOPV', name: 'País Vasco',  color: '#06b6d4', disponible: true  },
-  { key: 'galicia',   code: 'DOG',  name: 'Galicia',     color: '#84cc16', disponible: true  },
-  { key: 'aragon',    code: 'BOA',  name: 'Aragón',      color: '#f97316', disponible: true  },
+  { key: 'madrid',        code: 'BOCM',  name: 'Madrid',          color: '#f43f5e', disponible: true  },
+  { key: 'canarias',      code: 'BOC',   name: 'Canarias',        color: '#f59e0b', disponible: true  },
+  { key: 'andalucia',     code: 'BOJA',  name: 'Andalucía',       color: '#10b981', disponible: true  },
+  { key: 'cataluna',      code: 'DOGC',  name: 'Cataluña',        color: '#8b5cf6', disponible: true  },
+  { key: 'valencia',      code: 'DOCV',  name: 'Valencia',        color: '#3b82f6', disponible: true  },
+  { key: 'paisvasco',     code: 'BOPV',  name: 'País Vasco',      color: '#06b6d4', disponible: true  },
+  { key: 'galicia',       code: 'DOG',   name: 'Galicia',         color: '#84cc16', disponible: true  },
+  { key: 'aragon',        code: 'BOA',   name: 'Aragón',          color: '#f97316', disponible: true  },
+  { key: 'castillayleon', code: 'BOCYL', name: 'Castilla y León', color: '#a78bfa', disponible: true  },
+  { key: 'murcia',        code: 'BORM',  name: 'Murcia',          color: '#fb7185', disponible: true  },
+  { key: 'asturias',      code: 'BOPA',  name: 'Asturias',        color: '#34d399', disponible: true  },
+  { key: 'navarra',       code: 'BON',   name: 'Navarra',         color: '#fbbf24', disponible: true  },
 ];
 
 interface NavItem {

@@ -10,6 +10,7 @@ export interface AnuncioFarmacia {
   // Personas extraídas del texto del anuncio (null si no detectado)
   titular_saliente?: string | null;
   titular_entrante?: string | null;
+  email?: string | null;
 }
 
 export interface ScraperResult {

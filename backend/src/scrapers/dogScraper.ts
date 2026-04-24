@@ -14,6 +14,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 const DOG_BASE      = 'https://www.xunta.gal';
 const DOG_ISSUE     = '/dog/Publicados';
@@ -135,6 +136,7 @@ export class DogScraper implements IScraper {
         texto_resumen: titulo.slice(0, 500),
         comunidad:     this.comunidad,
         fuente:        this.nombre,
+        ...extraerTitulares(titulo),
       };
     });
 

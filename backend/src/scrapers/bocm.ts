@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import * as cheerio from 'cheerio';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 // ─────────────────────────────────────────────────────────────
 //  CONFIGURACIÓN — selectores verificados contra el DOM real
@@ -80,6 +81,9 @@ export class BocmScraper implements IScraper {
       const descripcion = $el.find(SEL.descripcion).text().trim().replace(/\u00a0/g, ' ');
       if (!descripcion) return;
 
+      const esRelevante = /farmaci|oficina de farmacia|transmisi[óo]n|cambio de titular|apertura/i.test(descripcion);
+      if (!esRelevante) return;
+
       // Nº de boletín
       const numBoletin = $el.find(SEL.numBoletin).text().trim();
 
@@ -112,6 +116,7 @@ export class BocmScraper implements IScraper {
         texto_resumen: descripcion,
         comunidad: this.comunidad,
         fuente: this.nombre,
+        ...extraerTitulares(descripcion),
       });
     });
 

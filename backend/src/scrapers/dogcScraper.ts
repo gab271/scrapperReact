@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 // ─────────────────────────────────────────────────────────────
 //  DOGC — Diari Oficial de la Generalitat de Catalunya
@@ -151,6 +152,7 @@ export class DogcScraper implements IScraper {
         texto_resumen: item.title,
         comunidad: this.comunidad,
         fuente: this.nombre,
+        ...extraerTitulares(item.title),
       });
     }
 

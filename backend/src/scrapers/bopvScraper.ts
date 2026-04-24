@@ -19,6 +19,7 @@ import axios from 'axios';
 import iconv from 'iconv-lite';
 import * as cheerio from 'cheerio';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 const BOPV_BASE    = 'https://www.euskadi.eus';
 const LOOKBACK_MONTHS = 3;
@@ -186,6 +187,7 @@ export class BopvScraper implements IScraper {
         texto_resumen: titulo.slice(0, 500),
         comunidad:     this.comunidad,
         fuente:        this.nombre,
+        ...extraerTitulares(titulo),
       });
     });
 

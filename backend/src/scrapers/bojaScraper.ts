@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import * as cheerio from 'cheerio';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 // ─────────────────────────────────────────────────────────────
 //  BOJA — Boletín Oficial de la Junta de Andalucía
@@ -141,6 +142,7 @@ export class BojaScraper implements IScraper {
         texto_resumen: textoResolucion.slice(0, 500),
         comunidad: this.comunidad,
         fuente: this.nombre,
+        ...extraerTitulares(textoResolucion),
       });
     });
 

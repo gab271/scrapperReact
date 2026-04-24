@@ -11,6 +11,7 @@
 
 import axios from 'axios';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 const DOGV_ORIGIN   = 'https://dogv.gva.es';
 const SEARCH_URL    = `${DOGV_ORIGIN}/dogv-portal/dogv/search`;
@@ -140,6 +141,7 @@ export class DocvScraper implements IScraper {
       texto_resumen: item.titulo.trim().slice(0, 500),
       comunidad:     this.comunidad,
       fuente:        this.nombre,
+      ...extraerTitulares(item.titulo),
     };
   }
 

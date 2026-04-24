@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import * as cheerio from 'cheerio';
 import { AnuncioFarmacia, IScraper, ScraperResult } from './types';
+import { extraerTitulares } from './extractorTitulares';
 
 // ─────────────────────────────────────────────────────────────
 //  CONFIGURACIÓN — selectores verificados contra el DOM real del BOC
@@ -194,6 +195,7 @@ export class BocScraper implements IScraper {
           titulo.slice(0, 300),
         comunidad: this.comunidad,
         fuente: this.nombre,
+        ...extraerTitulares(titulo),
       });
     });
 
