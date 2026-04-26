@@ -3,7 +3,8 @@ import { LayoutDashboard, Search, Bell, Map, Settings, FileText, Activity } from
 export type ComunidadKey =
   | 'madrid' | 'canarias' | 'andalucia' | 'cataluna'
   | 'valencia' | 'paisvasco' | 'galicia' | 'aragon'
-  | 'castillayleon' | 'murcia' | 'asturias' | 'navarra';
+  | 'castillayleon' | 'murcia' | 'asturias' | 'navarra'
+  | 'extremadura' | 'cantabria' | 'larioja' | 'baleares';
 export type VistaKey = 'dashboard' | 'buscador' | 'mapa';
 
 export interface ComunidadEntry {
@@ -27,6 +28,10 @@ export const COMUNIDADES: ComunidadEntry[] = [
   { key: 'murcia',        code: 'BORM',  name: 'Murcia',          color: '#fb7185', disponible: true  },
   { key: 'asturias',      code: 'BOPA',  name: 'Asturias',        color: '#34d399', disponible: true  },
   { key: 'navarra',       code: 'BON',   name: 'Navarra',         color: '#fbbf24', disponible: true  },
+  { key: 'extremadura',  code: 'DOE',   name: 'Extremadura',     color: '#65a30d', disponible: true  },
+  { key: 'cantabria',    code: 'BOC-C', name: 'Cantabria',       color: '#0284c7', disponible: true  },
+  { key: 'larioja',      code: 'BOR',   name: 'La Rioja',        color: '#be185d', disponible: true  },
+  { key: 'baleares',     code: 'BOIB',  name: 'Baleares',        color: '#1d4ed8', disponible: true  },
 ];
 
 interface NavItem {
