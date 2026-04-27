@@ -14,25 +14,27 @@ interface Props {
 
 const PAGE_SIZE = 48;
 
-export default function Directorio({ comunidad }: Props) {
-  const [farmacias, setFarmacias]       = useState<FarmaciaDirectorio[]>([]);
-  const [total, setTotal]               = useState(0);
-  const [pages, setPages]               = useState(0);
-  const [page, setPage]                 = useState(1);
-  const [municipios, setMunicipios]     = useState<string[]>([]);
-  const [busqueda, setBusqueda]         = useState('');
+export default function Directorio({ comunidad: comunidadInicial }: Props) {
+  const [comunidadActiva, setComunidadActiva] = useState<ComunidadKey>(comunidadInicial);
+  const [farmacias, setFarmacias]             = useState<FarmaciaDirectorio[]>([]);
+  const [total, setTotal]                     = useState(0);
+  const [pages, setPages]                     = useState(0);
+  const [page, setPage]                       = useState(1);
+  const [municipios, setMunicipios]           = useState<string[]>([]);
+  const [busqueda, setBusqueda]               = useState('');
   const [municipioFiltro, setMunicipioFiltro] = useState('');
-  const [loading, setLoading]           = useState(false);
-  const [syncing, setSyncing]           = useState(false);
-  const [error, setError]               = useState<string | null>(null);
-  const [syncInfo, setSyncInfo]         = useState<string | null>(null);
+  const [loading, setLoading]                 = useState(false);
+  const [syncing, setSyncing]                 = useState(false);
+  const [error, setError]                     = useState<string | null>(null);
+  const [syncInfo, setSyncInfo]               = useState<string | null>(null);
 
   const abortRef       = useRef<AbortController | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const comunidadInfo = COMUNIDADES.find(c => c.key === comunidad);
+  const comunidadInfo = COMUNIDADES.find(c => c.key === comunidadActiva);
 
-  const cargar = useCallback(async (q: string, mun: string, p: number) => {
+  // cargar recibe la comunidad explícitamente para evitar closures obsoletos
+  const cargar = useCallback(async (com: ComunidadKey, q: string, mun: string, p: number) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -42,7 +44,7 @@ export default function Directorio({ comunidad }: Props) {
 
     try {
       const res = await getDirectorio(
-        comunidad,
+        com,
         { busqueda: q || undefined, municipio: mun || undefined, page: p, limit: PAGE_SIZE },
         ctrl.signal,
       );
@@ -58,33 +60,40 @@ export default function Directorio({ comunidad }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [comunidad]);
+  }, []);
 
-  // Resetear al cambiar de comunidad
+  // Cuando cambia la comunidad activa: resetear filtros y recargar
   useEffect(() => {
     setBusqueda('');
     setMunicipioFiltro('');
     setPage(1);
     setSyncInfo(null);
-    cargar('', '', 1);
-  }, [comunidad, cargar]);
+    setFarmacias([]);
+    setTotal(0);
+    cargar(comunidadActiva, '', '', 1);
+  }, [comunidadActiva, cargar]);
+
+  // Sincronizar si el padre cambia la comunidad (clic en el sidebar)
+  useEffect(() => {
+    setComunidadActiva(comunidadInicial);
+  }, [comunidadInicial]);
 
   const handleBusqueda = (value: string) => {
     setBusqueda(value);
     setPage(1);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => cargar(value, municipioFiltro, 1), 380);
+    searchTimerRef.current = setTimeout(() => cargar(comunidadActiva, value, municipioFiltro, 1), 380);
   };
 
   const handleMunicipio = (value: string) => {
     setMunicipioFiltro(value);
     setPage(1);
-    cargar(busqueda, value, 1);
+    cargar(comunidadActiva, busqueda, value, 1);
   };
 
   const handlePage = (p: number) => {
     setPage(p);
-    cargar(busqueda, municipioFiltro, p);
+    cargar(comunidadActiva, busqueda, municipioFiltro, p);
   };
 
   const handleSync = async () => {
@@ -92,9 +101,9 @@ export default function Directorio({ comunidad }: Props) {
     setSyncInfo(null);
     setError(null);
     try {
-      const res = await syncDirectorio(comunidad);
+      const res = await syncDirectorio(comunidadActiva);
       setSyncInfo(`${res.total.toLocaleString('es-ES')} farmacias actualizadas`);
-      await cargar(busqueda, municipioFiltro, page);
+      await cargar(comunidadActiva, busqueda, municipioFiltro, page);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al sincronizar con OpenStreetMap');
     } finally {
@@ -122,11 +131,10 @@ export default function Directorio({ comunidad }: Props) {
             )}
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            {comunidadInfo?.name} · {
-              loading && total === 0
-                ? 'Cargando directorio…'
-                : `${total.toLocaleString('es-ES')} farmacias`
-            }
+            {comunidadInfo?.name} ·{' '}
+            {loading && total === 0
+              ? 'Cargando directorio…'
+              : `${total.toLocaleString('es-ES')} farmacias`}
           </p>
         </div>
 
@@ -137,9 +145,7 @@ export default function Directorio({ comunidad }: Props) {
               {syncInfo}
             </span>
           )}
-          <span className="hidden md:block text-[11px] text-slate-400">
-            Fuente: OpenStreetMap
-          </span>
+          <span className="hidden md:block text-[11px] text-slate-400">Fuente: OSM</span>
           <button
             onClick={handleSync}
             disabled={syncing || loading}
@@ -150,6 +156,40 @@ export default function Directorio({ comunidad }: Props) {
           </button>
         </div>
       </header>
+
+      {/* ── Selector de comunidades ── */}
+      <div
+        className="bg-white border-b border-slate-100 px-6 py-3 shrink-0 overflow-x-auto"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        <div className="flex gap-2 w-max">
+          {COMUNIDADES.map(ca => {
+            const isActive = ca.key === comunidadActiva;
+            return (
+              <button
+                key={ca.key}
+                onClick={() => setComunidadActiva(ca.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap border transition-all ${
+                  isActive
+                    ? 'border-transparent text-white shadow-sm scale-[1.02]'
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50'
+                }`}
+                style={isActive
+                  ? { background: ca.color }
+                  : {}
+                }
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: isActive ? 'rgba(255,255,255,0.65)' : ca.color }}
+                />
+                <span className="font-mono-data tracking-wide">{ca.code}</span>
+                <span className="hidden lg:inline text-[10px] opacity-80">{ca.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ── Barra de búsqueda y filtros ── */}
       <div className="bg-white border-b border-slate-100 px-6 py-3 flex items-center gap-3 shrink-0">
@@ -185,10 +225,10 @@ export default function Directorio({ comunidad }: Props) {
 
         {(busqueda || municipioFiltro) && (
           <button
-            onClick={() => { handleBusqueda(''); setMunicipioFiltro(''); cargar('', '', 1); }}
+            onClick={() => { handleBusqueda(''); handleMunicipio(''); }}
             className="text-[11px] text-slate-500 hover:text-slate-700 font-medium transition-colors"
           >
-            Limpiar filtros
+            Limpiar
           </button>
         )}
 
@@ -200,7 +240,6 @@ export default function Directorio({ comunidad }: Props) {
       {/* ── Contenido ── */}
       <main className="flex-1 overflow-y-auto px-6 py-5">
 
-        {/* Error */}
         {error && (
           <div className="mb-5 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 animate-fade-up">
             <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-500" />
@@ -208,7 +247,7 @@ export default function Directorio({ comunidad }: Props) {
               <p className="font-semibold">Error al cargar el directorio</p>
               <p className="text-amber-700 text-[13px] mt-0.5">{error}</p>
               <button
-                onClick={() => cargar(busqueda, municipioFiltro, page)}
+                onClick={() => cargar(comunidadActiva, busqueda, municipioFiltro, page)}
                 className="mt-2 text-[12px] font-semibold text-amber-800 underline"
               >
                 Reintentar
@@ -217,7 +256,6 @@ export default function Directorio({ comunidad }: Props) {
           </div>
         )}
 
-        {/* Skeleton de carga */}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -233,22 +271,23 @@ export default function Directorio({ comunidad }: Props) {
           </div>
         )}
 
-        {/* Vacío */}
         {!loading && !error && farmacias.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
-              <Building2 size={26} className="text-slate-300" strokeWidth={1.5} />
+            <div
+              className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+              style={{ background: `${comunidadInfo?.color ?? '#10b981'}12` }}
+            >
+              <Building2 size={26} style={{ color: comunidadInfo?.color ?? '#10b981' }} strokeWidth={1.5} />
             </div>
-            <p className="font-bold text-slate-700">No se encontraron farmacias</p>
+            <p className="font-bold text-slate-700">No hay farmacias para {comunidadInfo?.name}</p>
             <p className="text-sm text-slate-400 mt-1 max-w-xs">
               {busqueda || municipioFiltro
                 ? 'Prueba con otros términos o elimina los filtros'
-                : 'Pulsa "Actualizar datos" para descargar el directorio desde OpenStreetMap'}
+                : 'Pulsa "Actualizar datos" para descargar desde OpenStreetMap'}
             </p>
           </div>
         )}
 
-        {/* Grid de tarjetas */}
         {!loading && farmacias.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -262,7 +301,6 @@ export default function Directorio({ comunidad }: Props) {
               ))}
             </div>
 
-            {/* Paginación */}
             {pages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8 pb-4">
                 <button
@@ -286,7 +324,6 @@ export default function Directorio({ comunidad }: Props) {
             )}
           </>
         )}
-
       </main>
     </div>
   );
@@ -294,16 +331,15 @@ export default function Directorio({ comunidad }: Props) {
 
 // ── Tarjeta de farmacia ───────────────────────────────────────────────────────
 
-interface CardProps {
-  farmacia:     FarmaciaDirectorio;
+function FarmaciaCard({
+  farmacia, accentColor, index,
+}: {
+  farmacia: FarmaciaDirectorio;
   accentColor?: string;
-  index:        number;
-}
-
-function FarmaciaCard({ farmacia, accentColor, index }: CardProps) {
+  index: number;
+}) {
   const { nombre, direccion, municipio, provincia, telefono, email, horario } = farmacia;
-  const color = accentColor ?? '#10b981';
-
+  const color    = accentColor ?? '#10b981';
   const ubicacion = [direccion, municipio, provincia].filter(Boolean).join(', ');
 
   return (
@@ -311,11 +347,10 @@ function FarmaciaCard({ farmacia, accentColor, index }: CardProps) {
       className="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all animate-fade-up flex flex-col gap-3"
       style={{ animationDelay: `${Math.min(index, 11) * 30}ms` }}
     >
-      {/* Cabecera: icono + nombre */}
       <div className="flex items-start gap-2.5">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[13px] font-bold select-none"
-          style={{ background: `${color}18`, color }}
+          style={{ background: `${color}15`, color }}
         >
           ✚
         </div>
@@ -324,14 +359,12 @@ function FarmaciaCard({ farmacia, accentColor, index }: CardProps) {
         </h3>
       </div>
 
-      {/* Datos de contacto */}
       <div className="space-y-1.5">
         {ubicacion && (
           <DataRow icon={<MapPin size={11} />}>
             <span className="text-[11px] text-slate-600 leading-snug">{ubicacion}</span>
           </DataRow>
         )}
-
         {telefono && (
           <DataRow icon={<Phone size={11} />}>
             <a
@@ -342,7 +375,6 @@ function FarmaciaCard({ farmacia, accentColor, index }: CardProps) {
             </a>
           </DataRow>
         )}
-
         {email && (
           <DataRow icon={<Mail size={11} />}>
             <a
@@ -353,7 +385,6 @@ function FarmaciaCard({ farmacia, accentColor, index }: CardProps) {
             </a>
           </DataRow>
         )}
-
         {horario && (
           <DataRow icon={<Clock size={11} />}>
             <span className="text-[10px] text-slate-400 leading-snug line-clamp-1">{horario}</span>
