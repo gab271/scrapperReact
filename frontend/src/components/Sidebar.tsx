@@ -5,7 +5,7 @@ export type ComunidadKey =
   | 'valencia' | 'paisvasco' | 'galicia' | 'aragon'
   | 'castillayleon' | 'murcia' | 'asturias' | 'navarra'
   | 'extremadura' | 'cantabria' | 'larioja' | 'baleares';
-export type VistaKey = 'dashboard' | 'buscador' | 'mapa';
+export type VistaKey = 'dashboard' | 'comunidad' | 'buscador' | 'mapa';
 
 export interface ComunidadEntry {
   key: ComunidadKey;

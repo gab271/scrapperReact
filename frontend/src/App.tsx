@@ -8,6 +8,7 @@ import { SkeletonGrid } from './components/SkeletonCard';
 import EmptyState from './components/EmptyState';
 import Buscador from './components/Buscador';
 import Mapa from './components/Mapa';
+import MainDashboard from './components/MainDashboard';
 
 interface Meta {
   total: number;
@@ -58,6 +59,7 @@ export default function App() {
   useEffect(() => { cargar(comunidad, meses); }, [comunidad, meses, cargar]);
 
   const handleComunidadChange = (key: ComunidadKey) => {
+    setVista('comunidad');
     if (key !== comunidad) setComunidad(key);
     else cargar(key);
   };
@@ -99,12 +101,13 @@ export default function App() {
         onVistaChange={setVista}
       />
 
-      {/* ── Vistas alternativas ── */}
-      {vista === 'buscador' && <Buscador />}
-      {vista === 'mapa'     && <Mapa />}
+      {/* ── Vistas ── */}
+      {vista === 'buscador'  && <Buscador />}
+      {vista === 'mapa'      && <Mapa />}
+      {vista === 'dashboard' && <MainDashboard onForzarScraping={handleSync} />}
 
-      {/* ── Dashboard principal ─────────────────────────────────── */}
-      {vista === 'dashboard' && <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ── Dashboard de comunidad ── */}
+      {vista === 'comunidad' && <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* ── Topbar ── */}
         <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shrink-0">
@@ -257,7 +260,7 @@ export default function App() {
             </div>
           )}
         </main>
-      </div>}
+      </div>}  {/* fin vista comunidad */}
     </div>
   );
 }
