@@ -3,7 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import { getDb } from './db/database';
 import farmaciasRouter from './routes/farmacias.routes';
-import syncRouter from './routes/sync.routes';
+import syncRouter      from './routes/sync.routes';
+import directorioRouter from './routes/directorio.routes';
 
 const app  = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -37,6 +38,7 @@ app.use(
 // El orden importa: /sync debe registrarse antes que /:comunidad
 app.use('/api/farmacias/sync', syncRouter);
 app.use('/api/farmacias',      farmaciasRouter);
+app.use('/api/directorio',     directorioRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

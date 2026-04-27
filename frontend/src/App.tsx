@@ -9,6 +9,7 @@ import EmptyState from './components/EmptyState';
 import Buscador from './components/Buscador';
 import Mapa from './components/Mapa';
 import MainDashboard from './components/MainDashboard';
+import Directorio    from './components/Directorio';
 
 interface Meta {
   total: number;
@@ -104,7 +105,8 @@ export default function App() {
       {/* ── Vistas ── */}
       {vista === 'buscador'  && <Buscador />}
       {vista === 'mapa'      && <Mapa />}
-      {vista === 'dashboard' && <MainDashboard onForzarScraping={handleSync} />}
+      {vista === 'dashboard'  && <MainDashboard onForzarScraping={handleSync} />}
+      {vista === 'directorio' && <Directorio comunidad={comunidad} />}
 
       {/* ── Dashboard de comunidad ── */}
       {vista === 'comunidad' && <div className="flex-1 flex flex-col overflow-hidden">

@@ -1,11 +1,11 @@
-import { LayoutDashboard, Search, Bell, Map, Settings, FileText, Activity } from 'lucide-react';
+import { LayoutDashboard, Search, Bell, Map, Settings, FileText, Activity, Building2 } from 'lucide-react';
 
 export type ComunidadKey =
   | 'madrid' | 'canarias' | 'andalucia' | 'cataluna'
   | 'valencia' | 'paisvasco' | 'galicia' | 'aragon'
   | 'castillayleon' | 'murcia' | 'asturias' | 'navarra'
   | 'extremadura' | 'cantabria' | 'larioja' | 'baleares';
-export type VistaKey = 'dashboard' | 'comunidad' | 'buscador' | 'mapa';
+export type VistaKey = 'dashboard' | 'comunidad' | 'buscador' | 'mapa' | 'directorio';
 
 export interface ComunidadEntry {
   key: ComunidadKey;
@@ -42,11 +42,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: <LayoutDashboard size={17} />, label: 'Dashboard', vista: 'dashboard' },
-  { icon: <Search size={17} />,          label: 'Buscador',  vista: 'buscador'  },
-  { icon: <Bell size={17} />,            label: 'Alertas',   badge: 3           },
-  { icon: <Map size={17} />,             label: 'Mapa',      vista: 'mapa'      },
-  { icon: <FileText size={17} />,        label: 'Informes'                      },
+  { icon: <LayoutDashboard size={17} />, label: 'Dashboard',  vista: 'dashboard'  },
+  { icon: <Building2 size={17} />,       label: 'Directorio', vista: 'directorio' },
+  { icon: <Search size={17} />,          label: 'Buscador',   vista: 'buscador'   },
+  { icon: <Bell size={17} />,            label: 'Alertas',    badge: 3            },
+  { icon: <Map size={17} />,             label: 'Mapa',       vista: 'mapa'       },
+  { icon: <FileText size={17} />,        label: 'Informes'                        },
 ];
 
 interface Props {

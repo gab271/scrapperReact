@@ -49,6 +49,28 @@ function initSchema(db: Database.Database): void {
 
   // Índice para filtrado por fecha ISO
   db.exec(`CREATE INDEX IF NOT EXISTS idx_anuncios_fecha_iso ON anuncios(fecha_iso DESC);`);
+
+  // ── Directorio de farmacias (OpenStreetMap) ──────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS directorio_farmacias (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      comunidad      TEXT NOT NULL,
+      nombre         TEXT NOT NULL,
+      direccion      TEXT,
+      municipio      TEXT,
+      provincia      TEXT,
+      telefono       TEXT,
+      email          TEXT,
+      horario        TEXT,
+      lat            REAL,
+      lon            REAL,
+      osm_id         TEXT UNIQUE,
+      actualizado_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_directorio_comunidad ON directorio_farmacias(comunidad);
+    CREATE INDEX IF NOT EXISTS idx_directorio_municipio ON directorio_farmacias(municipio);
+    CREATE INDEX IF NOT EXISTS idx_directorio_nombre    ON directorio_farmacias(nombre);
+  `);
 }
 
 function migrateAddColumn(
