@@ -13,7 +13,8 @@ const BOC_HOME = `${BOC_BASE}/boc`;
 const BOC_SEDE = 'https://sede.gobiernodecanarias.org';
 
 // Cuántos números recientes analizar (cada número = 1 día hábil)
-const MAX_ISSUES = 50;
+// 180 issues ≈ 8-9 meses de cobertura histórica
+const MAX_ISSUES = 180;
 
 const SEL = {
   // Links a números del boletín en la homepage

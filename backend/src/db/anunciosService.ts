@@ -127,6 +127,67 @@ export function getAllAnuncios(meses = LOOKBACK_MONTHS): AnuncioFarmacia[] {
   `).all(limite) as AnuncioFarmacia[];
 }
 
+// ── Stats globales ────────────────────────────────────────────
+
+export interface StatsResult {
+  totalResoluciones: number;
+  variacionMes:      number;
+  porComunidad:      { comunidad: string; total: number }[];
+  scraperStatus:     { comunidad: string; ultima_fecha: string | null; total: number }[];
+  actividadReciente: {
+    comunidad:      string;
+    fuente:         string;
+    tipo_operacion: string;
+    fecha:          string;
+    adjudicatario:  string | null;
+    municipio:      string;
+  }[];
+}
+
+export function getStats(meses = 12): StatsResult {
+  const db     = getDb();
+  const limite = fechaLimite(meses);
+
+  const totalResoluciones = (db.prepare(`
+    SELECT COUNT(*) as n FROM anuncios
+    WHERE fecha_iso IS NULL OR fecha_iso >= ?
+  `).get(limite) as { n: number }).n;
+
+  // Resoluciones añadidas desde el 1 del mes actual
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  const limitesMes = inicioMes.toISOString().slice(0, 10);
+  const variacionMes = (db.prepare(`
+    SELECT COUNT(*) as n FROM anuncios WHERE fecha_iso >= ?
+  `).get(limitesMes) as { n: number }).n;
+
+  const porComunidad = db.prepare(`
+    SELECT comunidad, COUNT(*) as total FROM anuncios
+    WHERE fecha_iso IS NULL OR fecha_iso >= ?
+    GROUP BY comunidad
+    ORDER BY total DESC
+  `).all(limite) as { comunidad: string; total: number }[];
+
+  const scraperStatus = db.prepare(`
+    SELECT comunidad, MAX(fecha_iso) as ultima_fecha, COUNT(*) as total
+    FROM anuncios
+    GROUP BY comunidad
+    ORDER BY total DESC
+  `).all() as { comunidad: string; ultima_fecha: string | null; total: number }[];
+
+  const actividadReciente = db.prepare(`
+    SELECT comunidad, fuente, tipo_operacion, fecha, fecha_iso,
+           COALESCE(titular_entrante, titular_saliente, '') as adjudicatario,
+           municipio
+    FROM   anuncios
+    WHERE  fecha_iso IS NOT NULL
+    ORDER  BY fecha_iso DESC, creado_at DESC
+    LIMIT  5
+  `).all() as StatsResult['actividadReciente'];
+
+  return { totalResoluciones, variacionMes, porComunidad, scraperStatus, actividadReciente };
+}
+
 export function countByComunidad(comunidadKey: string): number {
   const db  = getDb();
   const row = db.prepare(

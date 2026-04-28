@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { getDb } from './db/database';
+import { initScheduler } from './scheduler';
 import farmaciasRouter from './routes/farmacias.routes';
 import syncRouter      from './routes/sync.routes';
 import directorioRouter from './routes/directorio.routes';
@@ -11,6 +12,9 @@ const PORT = Number(process.env.PORT) || 3000;
 
 // ── Base de datos — inicializar al arrancar ──────────────────
 getDb();
+
+// ── Scheduler — sync nocturno automático ─────────────────────
+initScheduler();
 
 // ── Middlewares ──────────────────────────────────────────────
 app.use(express.json());

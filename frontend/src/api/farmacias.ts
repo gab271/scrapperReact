@@ -47,6 +47,31 @@ export function exportarCSV(comunidad: ComunidadKey): void {
   a.click();
 }
 
+// ── Stats globales ────────────────────────────────────────────────────────────
+
+export interface StatsResponse {
+  ok:                boolean;
+  totalResoluciones: number;
+  variacionMes:      number;
+  porComunidad:      { comunidad: string; total: number }[];
+  scraperStatus:     { comunidad: string; ultima_fecha: string | null; total: number }[];
+  actividadReciente: {
+    comunidad:      string;
+    fuente:         string;
+    tipo_operacion: string;
+    fecha:          string;
+    adjudicatario:  string | null;
+    municipio:      string;
+  }[];
+  timestamp: string;
+}
+
+export async function getStats(meses = 12, signal?: AbortSignal): Promise<StatsResponse> {
+  const response = await fetch(`${API_BASE}/farmacias/stats?meses=${meses}`, { signal });
+  if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+  return response.json() as Promise<StatsResponse>;
+}
+
 // ── Directorio de farmacias (OpenStreetMap) ───────────────────────────────────
 
 export interface FarmaciaDirectorio {

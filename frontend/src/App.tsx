@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, AlertTriangle, Clock, Layers, TrendingUp, CloudDownload, FileDown } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Clock, Layers, TrendingUp, CloudDownload, FileDown, Menu } from 'lucide-react';
 import { getFarmaciasPorComunidad, syncFarmacias, exportarCSV } from './api/farmacias';
 import { AnuncioFarmacia, EstadoPeticion } from './types/farmacia';
 import Sidebar, { ComunidadKey, VistaKey, COMUNIDADES } from './components/Sidebar';
@@ -27,6 +27,7 @@ export default function App() {
   const [syncing, setSyncing]       = useState(false);
   const [syncInfo, setSyncInfo]     = useState<string | null>(null);
   const [meses, setMeses]           = useState<number>(12);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -95,12 +96,33 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
+
+      {/* Overlay móvil — cierra el sidebar al tocar fuera */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         comunidadActiva={comunidad}
         onComunidadChange={handleComunidadChange}
         vistaActiva={vista}
         onVistaChange={setVista}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
+
+      {/* Botón hamburguesa — solo visible en móvil */}
+      <button
+        className="md:hidden fixed top-3.5 left-4 z-30 p-1.5 rounded-lg text-white"
+        style={{ background: 'var(--sidebar-bg)' }}
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Abrir menú"
+      >
+        <Menu size={18} />
+      </button>
 
       {/* ── Vistas ── */}
       {vista === 'buscador'  && <Buscador />}

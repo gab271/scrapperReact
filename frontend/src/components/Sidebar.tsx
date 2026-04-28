@@ -1,4 +1,4 @@
-import { LayoutDashboard, Search, Bell, Map, Settings, FileText, Activity, Building2 } from 'lucide-react';
+import { LayoutDashboard, Search, Map, Settings, Activity, Building2, X } from 'lucide-react';
 
 export type ComunidadKey =
   | 'madrid' | 'canarias' | 'andalucia' | 'cataluna'
@@ -45,26 +45,42 @@ const NAV_ITEMS: NavItem[] = [
   { icon: <LayoutDashboard size={17} />, label: 'Dashboard',  vista: 'dashboard'  },
   { icon: <Building2 size={17} />,       label: 'Directorio', vista: 'directorio' },
   { icon: <Search size={17} />,          label: 'Buscador',   vista: 'buscador'   },
-  { icon: <Bell size={17} />,            label: 'Alertas',    badge: 3            },
   { icon: <Map size={17} />,             label: 'Mapa',       vista: 'mapa'       },
-  { icon: <FileText size={17} />,        label: 'Informes'                        },
 ];
 
 interface Props {
-  comunidadActiva: ComunidadKey;
+  comunidadActiva:   ComunidadKey;
   onComunidadChange: (key: ComunidadKey) => void;
-  vistaActiva: VistaKey;
-  onVistaChange: (vista: VistaKey) => void;
+  vistaActiva:       VistaKey;
+  onVistaChange:     (vista: VistaKey) => void;
+  isOpen:            boolean;
+  onClose:           () => void;
 }
 
-export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiva, onVistaChange }: Props) {
+export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiva, onVistaChange, isOpen, onClose }: Props) {
+  const handleVista = (vista: VistaKey) => {
+    onVistaChange(vista);
+    onClose();
+  };
+
+  const handleComunidad = (key: ComunidadKey) => {
+    onComunidadChange(key);
+    onClose();
+  };
+
   return (
     <aside
       style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
-      className="w-[240px] shrink-0 h-full flex flex-col"
+      className={[
+        'w-[240px] shrink-0 h-full flex flex-col',
+        // Móvil: posición fija, desliza desde la izquierda
+        'fixed md:relative inset-y-0 left-0 z-50',
+        'transition-transform duration-300 ease-in-out',
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+      ].join(' ')}
     >
-      {/* Logo */}
-      <div className="px-5 pt-6 pb-5" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
+      {/* Logo + botón cerrar (móvil) */}
+      <div className="px-5 pt-6 pb-5 flex items-center justify-between" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
             <Activity size={16} className="text-white" />
@@ -74,6 +90,13 @@ export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiv
             <p className="text-slate-500 text-[11px] mt-0.5 font-mono-data">v1.0 · beta</p>
           </div>
         </div>
+        <button
+          onClick={onClose}
+          className="md:hidden text-slate-500 hover:text-slate-200 transition-colors p-1 rounded"
+          aria-label="Cerrar menú"
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* Nav principal — solo visual en esta fase */}
@@ -88,7 +111,7 @@ export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiv
             return (
               <li key={item.label}>
                 <button
-                  onClick={() => item.vista && onVistaChange(item.vista)}
+                  onClick={() => item.vista && handleVista(item.vista)}
                   disabled={isDisabled}
                   title={isDisabled ? 'Próximamente' : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${
@@ -122,7 +145,7 @@ export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiv
             return (
               <li key={ca.key}>
                 <button
-                  onClick={() => ca.disponible && onComunidadChange(ca.key)}
+                  onClick={() => ca.disponible && handleComunidad(ca.key)}
                   disabled={!ca.disponible}
                   title={ca.disponible ? `Ver BOC de ${ca.name}` : 'Próximamente'}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-left

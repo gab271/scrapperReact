@@ -44,6 +44,66 @@ export function saveFarmaciasDirectorio(farmacias: FarmaciaDirectorio[]): number
   return insertMany(farmacias) as number;
 }
 
+// ── Enriquecimiento con datos de boletines ─────────────────────────────────────
+
+interface AnuncioEnriquecimiento {
+  nombre_farmacia:    string;
+  municipio:          string | null;
+  email:              string | null;
+  direccion_farmacia: string | null;
+}
+
+function normNombre(s: string): string {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/^farmacia\s+/i, '')
+    .trim();
+}
+
+function nombresSimilares(a: string, b: string): boolean {
+  const na = normNombre(a);
+  const nb = normNombre(b);
+  if (!na || !nb || na.length < 3 || nb.length < 3) return false;
+  return na.includes(nb) || nb.includes(na);
+}
+
+function enrichirConAnuncios(
+  farmacias: FarmaciaDirectorio[],
+  comunidad: string,
+): FarmaciaDirectorio[] {
+  const db = getDb();
+
+  // Extraemos solo los anuncios con datos útiles (email o dirección)
+  const fuentes = db.prepare(`
+    SELECT nombre_farmacia, municipio, email, direccion_farmacia
+    FROM   anuncios
+    WHERE  comunidad = ?
+      AND  nombre_farmacia IS NOT NULL AND nombre_farmacia != ''
+      AND  (email IS NOT NULL OR direccion_farmacia IS NOT NULL)
+    GROUP  BY nombre_farmacia, municipio
+  `).all(comunidad) as AnuncioEnriquecimiento[];
+
+  if (fuentes.length === 0) return farmacias;
+
+  return farmacias.map(f => {
+    if (f.email && f.direccion) return f; // ya completa, no tocar
+
+    const match = fuentes.find(a =>
+      nombresSimilares(f.nombre, a.nombre_farmacia) &&
+      (!a.municipio || !f.municipio ||
+        normNombre(a.municipio) === normNombre(f.municipio)),
+    );
+
+    if (!match) return f;
+
+    return {
+      ...f,
+      email:    f.email    ?? match.email              ?? null,
+      direccion: f.direccion ?? match.direccion_farmacia ?? null,
+    };
+  });
+}
+
 export function getFarmaciasDirectorio({ comunidad, busqueda, municipio, page = 1, limit = 50 }: DirectorioQuery): {
   farmacias: FarmaciaDirectorio[];
   total:     number;
@@ -79,7 +139,10 @@ export function getFarmaciasDirectorio({ comunidad, busqueda, municipio, page = 
     LIMIT ? OFFSET ?
   `).all([...params, limit, offset]) as FarmaciaDirectorio[];
 
-  return { farmacias, total, pages: Math.ceil(total / limit) };
+  // Enriquecer con email/dirección de los boletines donde falte
+  const enriquecidas = enrichirConAnuncios(farmacias, comunidad);
+
+  return { farmacias: enriquecidas, total, pages: Math.ceil(total / limit) };
 }
 
 export function getMunicipiosDirectorio(comunidad: string): string[] {

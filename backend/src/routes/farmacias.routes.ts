@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { scrapers } from '../scrapers';
 import { ScraperResult } from '../scrapers/types';
-import { getAnunciosByComunidad, getAllAnuncios, countByComunidad, saveAnnouncements } from '../db/anunciosService';
+import { getAnunciosByComunidad, getAllAnuncios, countByComunidad, saveAnnouncements, getStats } from '../db/anunciosService';
 
 const router = Router();
 
@@ -24,6 +24,18 @@ function toCSV(rows: ReturnType<typeof getAnunciosByComunidad>): string {
   const body   = rows.map(r => cols.map(c => escape(r[c as keyof typeof r])).join(',')).join('\n');
   return `${header}\n${body}`;
 }
+
+// GET /api/farmacias/stats  — estadísticas globales para el dashboard
+router.get('/stats', (req: Request, res: Response) => {
+  const meses = Number(req.query.meses) || 12;
+  try {
+    const stats = getStats(meses);
+    res.json({ ok: true, ...stats, timestamp: new Date().toISOString() });
+  } catch (err) {
+    console.error('[API] Error en /stats:', err);
+    res.status(500).json({ ok: false, error: 'Error al calcular estadísticas' });
+  }
+});
 
 // GET /api/farmacias/export  — exporta TODOS los anuncios a CSV
 router.get('/export', (req: Request, res: Response) => {
