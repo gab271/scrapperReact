@@ -21,6 +21,7 @@ debug-*.html
 debug-*.png
 debug-*.jpg
 debug-*.jpeg
+debug-*.js
 
 # OS files
 .DS_Store

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { scrapers } from '../scrapers';
 import { saveAnnouncements } from '../db/anunciosService';
+import { withRetry } from '../utils/retry';
 
 const router = Router();
 
@@ -13,7 +14,10 @@ router.post('/', async (_req: Request, res: Response) => {
   await Promise.allSettled(
     Object.entries(scrapers).map(async ([key, scraper]) => {
       try {
-        const result = await scraper.scrape();
+        const result = await withRetry(
+          () => scraper.scrape(),
+          { maxRetries: 2, baseDelayMs: 2_000, maxDelayMs: 15_000, label: key },
+        );
         const nuevos = saveAnnouncements(result.anuncios);
         resultados[key] = { total: result.total, nuevos };
         console.log(`[SYNC] ✅ ${key}: ${result.total} anuncios (${nuevos} nuevos)`);
@@ -46,7 +50,10 @@ router.post('/:comunidad', async (req: Request, res: Response) => {
   const t0 = Date.now();
 
   try {
-    const result   = await scraper.scrape();
+    const result   = await withRetry(
+      () => scraper.scrape(),
+      { maxRetries: 2, baseDelayMs: 2_000, maxDelayMs: 15_000, label: key },
+    );
     const nuevos   = saveAnnouncements(result.anuncios);
     const duracion = Date.now() - t0;
     console.log(`[SYNC] ✅ ${key}: ${result.total} anuncios (${nuevos} nuevos) en ${duracion}ms`);

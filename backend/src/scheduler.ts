@@ -1,5 +1,6 @@
 import { scrapers } from './scrapers';
 import { saveAnnouncements } from './db/anunciosService';
+import { withRetry } from './utils/retry';
 
 // Calcula los ms hasta la próxima ejecución a la hora indicada
 function msHastaProxima(hour: number, minute = 0): number {
@@ -21,7 +22,10 @@ async function runNightlySync(): Promise<void> {
   const resultados = await Promise.allSettled(
     keys.map(async key => {
       try {
-        const result = await scrapers[key].scrape();
+        const result = await withRetry(
+          () => scrapers[key].scrape(),
+          { maxRetries: 2, baseDelayMs: 2_000, maxDelayMs: 15_000, label: key },
+        );
         const nuevos = saveAnnouncements(result.anuncios);
         console.log(`[Scheduler] ✓ ${key.padEnd(16)} ${nuevos} nuevos`);
         return nuevos;

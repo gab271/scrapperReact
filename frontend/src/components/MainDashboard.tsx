@@ -4,15 +4,59 @@ import {
   ChevronRight, AlertTriangle,
 } from 'lucide-react';
 import { getStats, syncFarmacias } from '../api/farmacias';
+import type { StatsResponse } from '../api/farmacias';
 import { COMUNIDADES } from './Sidebar';
+
+// ─── Tipos internos ───────────────────────────────────────────────────────────
+
+type EstadoScraper = 'online' | 'error' | 'sin-datos';
+
+interface ComunidadMeta {
+  key:       string;
+  code:      string;
+  name:      string;
+  color:     string;
+  disponible: boolean;
+}
+
+interface CCAAprocesada {
+  comunidad: string;
+  total:     number;
+  code?:     string;
+  name?:     string;
+  color?:    string;
+}
+
+interface ScraperProcesado {
+  comunidad: string;
+  estado:    EstadoScraper;
+  detalle:   string;
+  code?:     string;
+  name?:     string;
+  color?:    string;
+  total?:    number;
+}
+
+interface ActividadProcesada {
+  comunidad:      string;
+  fuente:         string;
+  tipo_operacion: string;
+  fecha:          string;
+  adjudicatario:  string | null;
+  municipio:      string;
+  code?:          string;
+  name?:          string;
+  color?:         string;
+  tipoLabel:      string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function comunidadInfo(key) {
-  return COMUNIDADES.find(c => c.key === key) ?? null;
+function comunidadInfo(key: string): ComunidadMeta | null {
+  return (COMUNIDADES as ComunidadMeta[]).find(c => c.key === key) ?? null;
 }
 
-function estadoScraper(ultimaFecha) {
+function estadoScraper(ultimaFecha: string | null): EstadoScraper {
   if (!ultimaFecha) return 'sin-datos';
   const dias = Math.floor((Date.now() - new Date(ultimaFecha).getTime()) / 86_400_000);
   if (dias > 60) return 'sin-datos';
@@ -20,48 +64,52 @@ function estadoScraper(ultimaFecha) {
   return 'online';
 }
 
-function labelEstado(estado, ultimaFecha) {
+function labelEstado(estado: EstadoScraper, ultimaFecha: string | null): string {
   if (estado === 'sin-datos') return 'Sin datos';
   if (estado === 'error')     return 'Desactualizado';
-  const dias = Math.floor((Date.now() - new Date(ultimaFecha).getTime()) / 86_400_000);
+  const dias = Math.floor((Date.now() - new Date(ultimaFecha!).getTime()) / 86_400_000);
   if (dias === 0) return 'Hoy';
   if (dias === 1) return 'Ayer';
   return `Hace ${dias}d`;
 }
 
-const TIPO_LABELS = {
+const TIPO_LABELS: Record<string, string> = {
   apertura:    'Apertura',
   transmision: 'Transmisión',
   cierre:      'Cierre',
   otro:        'Resolución',
 };
 
-const TIPO_STYLES = {
+const TIPO_STYLES: Record<string, { bg: string; text: string; border: string }> = {
   Apertura:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
   Transmisión: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
   Cierre:      { bg: '#fef2f2', text: '#dc2626', border: '#fecaca' },
   Resolución:  { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' },
 };
 
-const ESTADO_DOT = {
-  online:      { bg: '#10b981', glow: 'rgba(16,185,129,0.20)', label: 'Online'    },
+const ESTADO_DOT: Record<EstadoScraper, { bg: string; glow: string; label: string }> = {
+  online:      { bg: '#10b981', glow: 'rgba(16,185,129,0.20)',  label: 'Online'    },
   error:       { bg: '#f97316', glow: 'rgba(249,115,22,0.20)',  label: 'Antiguo'   },
   'sin-datos': { bg: '#cbd5e1', glow: 'rgba(203,213,225,0.30)', label: 'Sin datos' },
 };
 
 // ─── MainDashboard ────────────────────────────────────────────────────────────
 
-export default function MainDashboard({ onForzarScraping }) {
-  const [stats, setStats]         = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+interface MainDashboardProps {
+  onForzarScraping?: () => Promise<void>;
+}
+
+export default function MainDashboard({ onForzarScraping }: MainDashboardProps) {
+  const [stats, setStats]             = useState<StatsResponse | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
   const [filtroMeses, setFiltroMeses] = useState(12);
-  const [scraping, setScraping]   = useState(false);
-  const [syncMsg, setSyncMsg]     = useState(null);
+  const [scraping, setScraping]       = useState(false);
+  const [syncMsg, setSyncMsg]         = useState<string | null>(null);
 
-  const abortRef = useRef(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const cargarStats = async (meses) => {
+  const cargarStats = async (meses: number) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -73,8 +121,8 @@ export default function MainDashboard({ onForzarScraping }) {
       if (ctrl.signal.aborted) return;
       setStats(data);
     } catch (err) {
-      if (err.name === 'AbortError') return;
-      setError(err.message ?? 'Error de conexión');
+      if ((err as Error).name === 'AbortError') return;
+      setError((err as Error).message ?? 'Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -86,7 +134,11 @@ export default function MainDashboard({ onForzarScraping }) {
     setScraping(true);
     setSyncMsg(null);
     try {
-      await onForzarScraping?.();
+      if (onForzarScraping) {
+        await onForzarScraping();
+      } else {
+        await syncFarmacias();
+      }
       setSyncMsg('Scraping completado');
       await cargarStats(filtroMeses);
     } catch {
@@ -100,20 +152,21 @@ export default function MainDashboard({ onForzarScraping }) {
   const totalResoluciones = stats?.totalResoluciones ?? 0;
   const variacionMes      = stats?.variacionMes      ?? 0;
 
-  const topComunidad = (() => {
+  const topComunidad: (CCAAprocesada & ComunidadMeta) | null = (() => {
     if (!stats?.porComunidad?.length) return null;
     const top  = stats.porComunidad[0];
     const info = comunidadInfo(top.comunidad);
+    if (!info) return null;
     return { ...top, ...info };
   })();
 
-  const ccaaData = (stats?.porComunidad ?? [])
+  const ccaaData: CCAAprocesada[] = (stats?.porComunidad ?? [])
     .map(p => ({ ...p, ...(comunidadInfo(p.comunidad) ?? {}) }))
     .filter(p => p.total > 0);
 
   const maxTotal = Math.max(...ccaaData.map(c => c.total), 1);
 
-  const scrapersData = (stats?.scraperStatus ?? []).map(s => {
+  const scrapersData: ScraperProcesado[] = (stats?.scraperStatus ?? []).map(s => {
     const info   = comunidadInfo(s.comunidad);
     const estado = estadoScraper(s.ultima_fecha);
     return {
@@ -126,7 +179,7 @@ export default function MainDashboard({ onForzarScraping }) {
 
   const scrapersOnline = scrapersData.filter(s => s.estado === 'online').length;
 
-  const actividadData = (stats?.actividadReciente ?? []).map(a => {
+  const actividadData: ActividadProcesada[] = (stats?.actividadReciente ?? []).map(a => {
     const info = comunidadInfo(a.comunidad);
     return {
       ...a,
@@ -186,7 +239,6 @@ export default function MainDashboard({ onForzarScraping }) {
       {/* ── Main ── */}
       <main className="flex-1 overflow-y-auto px-6 py-6 space-y-5">
 
-        {/* Error de conexión */}
         {error && (
           <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 animate-fade-up">
             <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-500" />
@@ -229,13 +281,13 @@ export default function MainDashboard({ onForzarScraping }) {
             titulo="Scrapers con datos"
             valor={scrapersData.length ? `${scrapersOnline}/${scrapersData.length}` : '—'}
             extra={
-              !scrapersData.length          ? 'Sin sincronizar aún' :
-              scrapersOnline === scrapersData.length ? 'Todos actualizados' :
+              !scrapersData.length                              ? 'Sin sincronizar aún'    :
+              scrapersOnline === scrapersData.length            ? 'Todos actualizados'     :
               `${scrapersData.length - scrapersOnline} sin actualizar`
             }
             extraPositivo={scrapersData.length > 0 && scrapersOnline === scrapersData.length}
             accentColor={
-              !scrapersData.length            ? '#94a3b8' :
+              !scrapersData.length                                   ? '#94a3b8' :
               scrapersOnline >= scrapersData.length * 0.75 ? '#10b981' : '#f97316'
             }
           />
@@ -290,9 +342,7 @@ export default function MainDashboard({ onForzarScraping }) {
                 ? <ul className="space-y-2.5">
                     {scrapersData.map(s => <ScraperRow key={s.comunidad} scraper={s} />)}
                   </ul>
-                : <p className="text-[12px] text-slate-400 py-6 text-center">
-                    Sin datos aún
-                  </p>
+                : <p className="text-[12px] text-slate-400 py-6 text-center">Sin datos aún</p>
             }
           </div>
         </div>
@@ -333,9 +383,20 @@ export default function MainDashboard({ onForzarScraping }) {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-function KpiCard({ loading, icon, titulo, valor, extra, extraPositivo, badge, accentColor }) {
+interface KpiCardProps {
+  loading:        boolean;
+  icon:           React.ReactNode;
+  titulo:         string;
+  valor:          string;
+  extra?:         string;
+  extraPositivo?: boolean;
+  badge?:         { label: string; color: string } | null;
+  accentColor:    string;
+}
+
+function KpiCard({ loading, icon, titulo, valor, extra, extraPositivo, badge, accentColor }: KpiCardProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 relative overflow-hidden animate-fade-up">
       <div
@@ -384,7 +445,7 @@ function KpiCard({ loading, icon, titulo, valor, extra, extraPositivo, badge, ac
   );
 }
 
-function BarChartCCAA({ data, maxTotal }) {
+function BarChartCCAA({ data, maxTotal }: { data: CCAAprocesada[]; maxTotal: number }) {
   const [animated, setAnimated] = useState(false);
 
   useEffect(() => {
@@ -439,8 +500,8 @@ function BarChartSkeleton() {
   );
 }
 
-function ScraperRow({ scraper }) {
-  const { estado = 'sin-datos', code, name, color, detalle, comunidad } = scraper;
+function ScraperRow({ scraper }: { scraper: ScraperProcesado }) {
+  const { estado, code, name, color, detalle, comunidad } = scraper;
   const dot = ESTADO_DOT[estado] ?? ESTADO_DOT['sin-datos'];
 
   return (
@@ -453,12 +514,10 @@ function ScraperRow({ scraper }) {
         className="text-[10px] font-bold font-mono-data px-1.5 py-0.5 rounded w-[50px] text-center shrink-0"
         style={{ background: `${color ?? '#94a3b8'}18`, color: color ?? '#94a3b8' }}
       >
-        {code ?? comunidad?.toUpperCase().slice(0, 4)}
+        {code ?? comunidad.toUpperCase().slice(0, 4)}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] font-medium text-slate-700 truncate">
-          {name ?? comunidad}
-        </p>
+        <p className="text-[12px] font-medium text-slate-700 truncate">{name ?? comunidad}</p>
         <p className="text-[10px] text-slate-400 truncate">{detalle}</p>
       </div>
       <span className="text-[10px] font-semibold shrink-0" style={{ color: dot.bg }}>
@@ -468,10 +527,10 @@ function ScraperRow({ scraper }) {
   );
 }
 
-function ActividadRow({ item, index }) {
+function ActividadRow({ item, index }: { item: ActividadProcesada; index: number }) {
   const { tipoLabel, fecha, adjudicatario, municipio, code, color, fuente } = item;
-  const ts = TIPO_STYLES[tipoLabel] ?? TIPO_STYLES.Resolución;
-  const displayCode = code ?? fuente ?? '—';
+  const ts           = TIPO_STYLES[tipoLabel] ?? TIPO_STYLES['Resolución'];
+  const displayCode  = code ?? fuente ?? '—';
   const displayColor = color ?? '#94a3b8';
 
   return (
