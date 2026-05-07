@@ -1,4 +1,4 @@
-import { LayoutDashboard, Search, Map, Settings, Activity, Building2, X } from 'lucide-react';
+import { LayoutDashboard, Search, Map, Activity, Building2, X } from 'lucide-react';
 
 export type ComunidadKey =
   | 'madrid' | 'canarias' | 'andalucia' | 'cataluna'
@@ -183,13 +183,6 @@ export default function Sidebar({ comunidadActiva, onComunidadChange, vistaActiv
         </ul>
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 pb-4 pt-3" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
-        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors">
-          <Settings size={16} />
-          Configuración
-        </button>
-      </div>
     </aside>
   );
 }
